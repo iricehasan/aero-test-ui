@@ -4,7 +4,6 @@ import { useChain } from '@cosmos-kit/react';
 import { ToastError, ToastSuccess } from "@/components/alert/SweatAlert";
 import React, {createContext, useContext,useEffect, useState} from 'react'
 import { toBase64, toUtf8 } from "@cosmjs/encoding"
-import { isAminoMsgSetWithdrawAddress } from '@cosmjs/stargate';
 import { INJ_DENOM, USDT_DENOM, protocolAddress, oracleHelperAddress, cw20contractAddress} from './constants';
 
 const UserContext = createContext({});
@@ -64,7 +63,7 @@ export const useContract = () => {
           const client = await getClient();
           if (!client) return null;
           const response: any = await client.queryContractSmart(protocolAddress, {
-            emergency_user_debt: { address: isAminoMsgSetWithdrawAddress },
+            emergency_user_debt: { user_addr: address },
           });
           return response;
         } catch (error) {
