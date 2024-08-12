@@ -45,22 +45,33 @@ export const useContract = () => {
 
   const {
     status,
-    address,
     connect,
     disconnect,
 } = chainContext;
 
+const [address, setAddress] = useState<string>("")
+
+const getAddress = async () => {
+  try {
+    const addresses = await getAddresses()
+    setAddress(addresses[0])
+  } catch (error) {
+    console.error(error)
+  }
+}
 
 useEffect(() => {
   const initClient = async () => {
       if (status === "Connected") {
+          getAddress()
           console.log("status:", status); // Log the client
       }
   };
   initClient();
 }, [status]);
 
-const injectiveAddress = address
+  const injectiveAddress = address
+
 
     const getEmergencyDebtByAddress = async (address: string) => {
         try {
@@ -69,7 +80,7 @@ const injectiveAddress = address
             toBase64({
               emergency_user_debt: { user_addr: address },
             })
-          )) as { data: string };
+          ));
 
           const debt = fromBase64(response.data);
   
@@ -157,21 +168,21 @@ const injectiveAddress = address
           msg: {
             open_trove: {loan_amount: loanAmount},
           },
-        });
-  
-        const res = await msgBroadcastClient.broadcast({
-          msgs: msg,
-          injectiveAddress: injectiveAddress,
           funds:   [{
             denom,
             amount,
           }]
         });
+  
+        const res = await msgBroadcastClient.broadcast({
+          msgs: msg,
+          injectiveAddress: injectiveAddress,
+        });
 
         ToastSuccess({
-          tHashLink: res?.transactionHash,
+          tHashLink: res?.txHash,
         }).fire({ title: "Open Trove successful" });
-        return res ? { transactionHash: res?.transactionHash } : false;
+        return res ? { transactionHash: res?.txHash } : false;
       } catch (error) {
         console.error("Error open trove:", error);
         ToastError.fire({ title: "Open Trove failed" });
@@ -196,9 +207,9 @@ const injectiveAddress = address
       });
 
       ToastSuccess({
-        tHashLink: res?.transactionHash,
+        tHashLink: res?.txHash,
       }).fire({ title: "Repay Loan successful" });
-      return res ? { transactionHash: res?.transactionHash } : false;
+      return res ? { transactionHash: res?.txHash } : false;
     } catch (error) {
       console.error("Error repaying loan:", error);
       ToastError.fire({ title: "Repay Loan failed" });
@@ -206,14 +217,14 @@ const injectiveAddress = address
         }
     };
 
-        const baseEmergencyRepayLoan = toBase64(toUtf8(JSON.stringify({
+        const baseEmergencyRepayLoan = toBase64({
           emergency_repay_loan: {},
-       })))
+       })
 
 
-        const baseEmergencyRedeem = toBase64(toUtf8(JSON.stringify({
+        const baseEmergencyRedeem = toBase64({
                 emergency_redeem: {},
-              })))
+              })
 
         const emergencyRedeem = async (amount: string) => {
             try {
@@ -234,9 +245,9 @@ const injectiveAddress = address
               });
 
               ToastSuccess({
-                tHashLink: res?.transactionHash,
+                tHashLink: res?.txHash,
               }).fire({ title: "Redeem successful" });
-              return res ? { transactionHash: res?.transactionHash } : false;
+              return res ? { transactionHash: res?.txHash } : false;
             } catch (error) {
               console.error("Error redeem:", error);
               ToastError.fire({ title: "Redeem failed" });
@@ -263,9 +274,9 @@ const injectiveAddress = address
                 });
 
                 ToastSuccess({
-                  tHashLink: res?.transactionHash,
+                  tHashLink: res?.txHash,
                 }).fire({ title: "Repay Loan successful" });
-                return res ? { transactionHash: res?.transactionHash } : false;
+                return res ? { transactionHash: res?.txHash } : false;
               } catch (error) {
                 console.error("Error repaying loan:", error);
                 ToastError.fire({ title: "Repay Loan failed" });
