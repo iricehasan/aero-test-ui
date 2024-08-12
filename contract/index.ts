@@ -1,70 +1,60 @@
 'use client';
 
-import { useChain } from '@cosmos-kit/react';
 import { ToastError, ToastSuccess } from "@/components/alert/SweatAlert";
 import React, {createContext, useContext,useEffect, useState} from 'react'
-import { toBase64, toUtf8 } from "@cosmjs/encoding"
 import { INJ_DENOM, USDT_DENOM, protocolAddress, oracleHelperAddress, cw20contractAddress} from './constants';
+import { ChainGrpcWasmApi, getInjectiveAddress, MsgExecuteContractCompat,
+  fromBase64,
+  toBase64, toUtf8 } from "@injectivelabs/sdk-ts";
+import { Network, getNetworkEndpoints } from "@injectivelabs/networks";
+import { WalletStrategy, Wallet, MsgBroadcaster } from "@injectivelabs/wallet-ts";
+import { Web3Exception } from "@injectivelabs/exceptions";
+import { ChainId } from "@injectivelabs/ts-types";
+import { useWalletStore } from "../context/WalletContextProvider";
 
-const UserContext = createContext({});
+const NETWORK = Network.Testnet;
+const ENDPOINTS = getNetworkEndpoints(NETWORK);
 
-export const useUserContext = () => {
-    const context = useContext(UserContext);
+const chainGrpcWasmApi = new ChainGrpcWasmApi(ENDPOINTS.grpc);
 
-    if (context === undefined) {
-        throw new Error("Context was used outside of its Provider!");
-    }
+const walletStrategy = new WalletStrategy({
+  chainId: ChainId.Testnet,
+  wallet: Wallet.Keplr,
+});
 
-    return context;
+export const msgBroadcastClient = new MsgBroadcaster({
+  walletStrategy,
+  network: NETWORK,
+}) 
+
+export const getAddresses = async (): Promise<string[]> => {
+  const addresses = await walletStrategy.getAddresses();
+
+  if (addresses.length === 0) {
+    throw new Web3Exception(
+      new Error("There are no addresses linked in this wallet.")
+    );
+  }
+
+  return addresses;
 };
 
 export const useContract = () => {
-    const chainContext = useChain("injectivetestnet");
+  const [status, setStatus] = useState<any>(null);
 
-    const {
-        status,
-        getSigningCosmWasmClient,
-        username,
-        address,
-        message,
-        connect,
-        disconnect,
-        openView,
-    } = chainContext;
-
-    const [client, setClient] = useState<any>(null);
-
-    useEffect(() => {
-      const initClient = async () => {
-          if (status === "Connected") {
-              const cosmWasmClient = await getSigningCosmWasmClient();
-              console.log("cosmWasmClient:", cosmWasmClient); // Log the client
-              setClient(cosmWasmClient);
-          }
-      };
-      initClient();
-  }, [status, getSigningCosmWasmClient]);
-
-    const getClient = async () => {
-      try {
-        return client;
-      } catch (error) {
-        console.log("Error:", error);
-        return null;
-      }
-    };
-
-    const signerAddress = address
-
-
+  const { connectWallet, injectiveAddress } = useWalletStore();
 
     const getEmergencyDebtByAddress = async (address: string) => {
         try {
-          const client = await getClient();
-          if (!client) return null;
-          const response: any = await client.queryContractSmart(protocolAddress, {
-            emergency_user_debt: { user_addr: address },
-          });
+          const response: any = (await chainGrpcWasmApi.fetchSmartContractState(
+            protocolAddress,
+            toBase64({
+              emergency_user_debt: { user_addr: address },
+            })
+          )) as { data: string };
+
+          //const { count } = fromBase64(response.data) as { count: number };
+  
           return response;
         } catch (error) {
           console.error("Error getting user debt:", error);
@@ -75,34 +65,36 @@ export const useContract = () => {
 
     const setDataBatch = async() => {
       try {
-        if (!client) return null;
-          const res = await client.execute(
-            signerAddress,
-            oracleHelperAddress,
-            {
-              set_data_batch: {
-                data: [ {
-            
-                    "denom": INJ_DENOM,
-                    "decimal": 18,
-                    "price_id": "price1"
-                  },
-                  { 
-                    "denom": USDT_DENOM,
-                    "decimal": 6,
-                    "price_id": "price2"
-                  }
-                ]
-              }
-            },
-          "auto", // fee
-          "",
-          []
-        );
+        const msg = MsgExecuteContractCompat.fromJSON({
+          contractAddress: oracleHelperAddress,
+          sender: injectiveAddress,
+          msg: {
+            set_data_batch: {
+              data: [ {
+          
+                  "denom": INJ_DENOM,
+                  "decimal": 18,
+                  "price_id": "price1"
+                },
+                { 
+                  "denom": USDT_DENOM,
+                  "decimal": 6,
+                  "price_id": "price2"
+                }
+              ]
+            }
+          },
+        });
+  
+        const res = await msgBroadcastClient.broadcast({
+          msgs: msg,
+          injectiveAddress: injectiveAddress,
+        });
+
         ToastSuccess({
-          tHashLink: res?.transactionHash,
+          tHashLink: res?.txHash,
         }).fire({ title: "Set Data Batch successful" });
-        return res ? { transactionHash: res?.transactionHash } : false;
+        return res ? { transactionHash: res?.txHash } : false;
       } catch (error) {
         console.error("Error setting data batch:", error);
         ToastError.fire({ title: "Set Data Batch failed" });
@@ -112,24 +104,26 @@ export const useContract = () => {
 
     const setPrice = async(denom: string, price: number) => {
       try {
-        if (!client) return null;
-          const res = await client.execute(
-            signerAddress,
-            oracleHelperAddress,
-            {
-              set_price: {
-                  denom,
-                  price,
-              }
-            },
-          "auto", // fee
-          "",
-          []
-        );
+        const msg = MsgExecuteContractCompat.fromJSON({
+          contractAddress: oracleHelperAddress,
+          sender: injectiveAddress,
+          msg:   {
+            set_price: {
+                denom,
+                price,
+            }
+          },
+        });
+  
+        const res = await msgBroadcastClient.broadcast({
+          msgs: msg,
+          injectiveAddress: injectiveAddress,
+        });
+
         ToastSuccess({
-          tHashLink: res?.transactionHash,
+          tHashLink: res?.txHash,
         }).fire({ title: "Set Price successful" });
-        return res ? { transactionHash: res?.transactionHash } : false;
+        return res ? { transactionHash: res?.txHash } : false;
       } catch (error) {
         console.error("Error setting price:", error);
         ToastError.fire({ title: "Set Price failed" });
@@ -139,20 +133,19 @@ export const useContract = () => {
 
     const openTrove = async (loanAmount: string, denom: string, amount: string) => {
       try {
-        if (!client) return null;
-        const res = await client.execute(
-          signerAddress,
-          protocolAddress,
-          {
+        const msg = MsgExecuteContractCompat.fromJSON({
+          contractAddress: protocolAddress,
+          sender: injectiveAddress,
+          msg: {
             open_trove: {loan_amount: loanAmount},
           },
-          "auto", // fee
-          "",
-          [{
-            denom,
-            amount,
-          }]
-        );
+        });
+  
+        const res = await msgBroadcastClient.broadcast({
+          msgs: msg,
+          injectiveAddress: injectiveAddress,
+        });
+
         ToastSuccess({
           tHashLink: res?.transactionHash,
         }).fire({ title: "Open Trove successful" });
@@ -167,17 +160,19 @@ export const useContract = () => {
 
   const emergency = async () => {
     try {
-      if (!client) return null;
-      const res = await client.execute(
-        signerAddress,
-        protocolAddress,
-        {
+      const msg = MsgExecuteContractCompat.fromJSON({
+        contractAddress: protocolAddress,
+        sender: injectiveAddress,
+        msg: {
           emergency: {}
         },
-        "auto", // fee
-        "",
-        []
-      );
+      });
+
+      const res = await msgBroadcastClient.broadcast({
+        msgs: msg,
+        injectiveAddress: injectiveAddress,
+      });
+
       ToastSuccess({
         tHashLink: res?.transactionHash,
       }).fire({ title: "Repay Loan successful" });
@@ -200,20 +195,22 @@ export const useContract = () => {
 
         const emergencyRedeem = async (amount: string) => {
             try {
-              if (!client) return null;
-              const res = await client.execute(
-                signerAddress,
-                cw20contractAddress,
-                {
+              const msg = MsgExecuteContractCompat.fromJSON({
+                contractAddress: cw20contractAddress,
+                sender: injectiveAddress,
+                msg: {
                   send: {
                     contract: protocolAddress, 
                     amount, 
                     msg: baseEmergencyRedeem}
                 },
-                "auto", // fee
-                "",
-                []
-              );
+              });
+        
+              const res = await msgBroadcastClient.broadcast({
+                msgs: msg,
+                injectiveAddress: injectiveAddress,
+              });
+
               ToastSuccess({
                 tHashLink: res?.transactionHash,
               }).fire({ title: "Redeem successful" });
@@ -225,23 +222,24 @@ export const useContract = () => {
                 }
             };
 
-
             const emergencyRepayLoan = async (amount: string) => {
               try {
-                if (!client) return null;
-                const res = await client.execute(
-                  signerAddress,
-                  cw20contractAddress,
-                  {
+                const msg = MsgExecuteContractCompat.fromJSON({
+                  contractAddress: cw20contractAddress,
+                  sender: injectiveAddress,
+                  msg: {
                     send: {
                       contract: protocolAddress, 
                       amount, 
                       msg: baseEmergencyRepayLoan}
                   },
-                  "auto", // fee
-                  "",
-                  []
-                );
+                });
+          
+                const res = await msgBroadcastClient.broadcast({
+                  msgs: msg,
+                  injectiveAddress: injectiveAddress,
+                });
+
                 ToastSuccess({
                   tHashLink: res?.transactionHash,
                 }).fire({ title: "Repay Loan successful" });
@@ -252,12 +250,10 @@ export const useContract = () => {
                 return false;
                   }
               };
+
     return ({
-        connect,
-        getSigningCosmWasmClient,
-        disconnect,
-        address,
-        status,
+      connectWallet,
+        injectiveAddress,
         emergency,
         getEmergencyDebtByAddress,
         openTrove,

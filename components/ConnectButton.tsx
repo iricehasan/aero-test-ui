@@ -1,11 +1,12 @@
 'use client';
 
 import { useContract } from '@/contract';
-import { useChain } from '@cosmos-kit/react';
 import React, { useState } from 'react';
 
 const ConnectButton = () => {
-    const { address, status, disconnect, connect, 
+    const { 
+        connectWallet,
+        injectiveAddress,
         getEmergencyDebtByAddress,
         setDataBatch,
         openTrove,
@@ -28,7 +29,7 @@ const ConnectButton = () => {
     const [emergencyRedeemAmount, setEmergencyRedeemAmount] = useState('');
 
     async function OpenTrove() {
-        if (!address) {
+        if (!injectiveAddress) {
             console.log("Address is undefined");
             return;
         }
@@ -95,7 +96,7 @@ const ConnectButton = () => {
     }
 
     async function EmergencyRedeem() {
-        if (!address) {
+        if (!injectiveAddress) {
             console.log("Address is undefined");
             return;
         }
@@ -110,8 +111,8 @@ const ConnectButton = () => {
     return (
         <>
             <div className='absolute top-20'>
-                {status === "Connected" && <div className='flex flex-col'>
-                    <span style={{ color: "palegreen", fontSize: "16px", marginBottom: "24px" }}>Address: {address}</span>
+                {<div className='flex flex-col'>
+                    <span style={{ color: "palegreen", fontSize: "16px", marginBottom: "24px" }}>Address: {injectiveAddress}</span>
 
 
                     {/* Group 1: SetDataBatch */}
@@ -253,12 +254,11 @@ const ConnectButton = () => {
                             </button>
                         </div>
                     </div>
-
-                    <button onClick={() => { disconnect(); }} className="gradient-button">Disconnect</button>
-                </div>}
+                    <div>
+                {<button onClick={connectWallet} className="gradient-button">Connect Wallet</button>}
             </div>
-            <div>
-                {status !== "Connected" && <button onClick={connect} className="gradient-button">Connect Wallet</button>}
+
+                </div>}
             </div>
         </>
     );
