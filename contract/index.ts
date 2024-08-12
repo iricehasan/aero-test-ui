@@ -208,11 +208,11 @@ useEffect(() => {
 
       ToastSuccess({
         tHashLink: res?.txHash,
-      }).fire({ title: "Repay Loan successful" });
+      }).fire({ title: "Emergency successful" });
       return res ? { transactionHash: res?.txHash } : false;
     } catch (error) {
-      console.error("Error repaying loan:", error);
-      ToastError.fire({ title: "Repay Loan failed" });
+      console.error("Error emergency:", error);
+      ToastError.fire({ title: "Emergency failed" });
       return false;
         }
     };

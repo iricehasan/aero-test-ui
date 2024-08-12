@@ -16,15 +16,15 @@ const Provider:FC<PropsWithChildren> = ({ children }) => {
       wallets={[keplr[0]]}
       endpointOptions={{
         endpoints: {
-          sei: {
-            rpc: ['https://sei-rpc.lavenderfive.com:443']
+          injective: {
+            rpc: ['	https://testnet.sentry.tm.injective.network:443']
           },
         }
       }}
       signerOptions={{
         signingCosmwasm: () => {
           return {
-            gasPrice: GasPrice.fromString("0.025sei")
+            gasPrice: GasPrice.fromString("0.025inj")
           }
         },
         preferredSignType: () => {

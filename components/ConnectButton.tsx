@@ -53,7 +53,7 @@ const ConnectButton = () => {
     }
 
     async function SetPrice() {
-        if (!address) {
+        if (!injectiveAddress) {
             console.log("Address is undefined");
             return;
         }
@@ -85,7 +85,7 @@ const ConnectButton = () => {
     }
 
     async function EmergencyRepayLoan() {
-        if (!address) {
+        if (!injectiveAddress) {
             console.log("Address is undefined");
             return;
         }

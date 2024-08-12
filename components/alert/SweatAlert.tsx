@@ -39,7 +39,7 @@ export const ToastSuccess = ({ tHashLink }: { tHashLink?: string }) =>
     },
     html: tHashLink
       ? `
-  <a href="https://explorer.burnt.com/xion-testnet-1/tx/${tHashLink}" class="flex gap-2 items-center text-xs justify-end" target="_blank" rel="noopener">
+  <a href="https://testnet.explorer.injective.network/transaction/${tHashLink}" class="flex gap-2 items-center text-xs justify-end" target="_blank" rel="noopener">
   View explorer
   <svg
 	width="9"
