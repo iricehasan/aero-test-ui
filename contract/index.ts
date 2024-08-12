@@ -71,9 +71,9 @@ const injectiveAddress = address
             })
           )) as { data: string };
 
-          //const { count } = fromBase64(response.data) as { count: number };
+          const debt = fromBase64(response.data);
   
-          return response;
+          return debt;
         } catch (error) {
           console.error("Error getting user debt:", error);
           return null;
