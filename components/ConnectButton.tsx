@@ -5,7 +5,9 @@ import React, { useState } from 'react';
 
 const ConnectButton = () => {
     const { 
-        connectWallet,
+        connect,
+        disconnect,
+        status,
         injectiveAddress,
         getEmergencyDebtByAddress,
         setDataBatch,
@@ -111,7 +113,7 @@ const ConnectButton = () => {
     return (
         <>
             <div className='absolute top-20'>
-                {<div className='flex flex-col'>
+                {status === "Connected" && <div className='flex flex-col'>
                     <span style={{ color: "palegreen", fontSize: "16px", marginBottom: "24px" }}>Address: {injectiveAddress}</span>
 
 
@@ -254,12 +256,13 @@ const ConnectButton = () => {
                             </button>
                         </div>
                     </div>
-                    <div>
-                {<button onClick={connectWallet} className="gradient-button">Connect Wallet</button>}
-            </div>
-
+                    <button onClick={() => { disconnect(); }} className="gradient-button">Disconnect</button>
                 </div>}
             </div>
+            <div>
+                    {status !== "Connected" && <button onClick={connect} className="gradient-button">Connect Wallet</button>}
+            </div>
+
         </>
     );
 }

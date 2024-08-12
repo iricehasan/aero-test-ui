@@ -3,14 +3,14 @@
 import { ToastError, ToastSuccess } from "@/components/alert/SweatAlert";
 import React, {createContext, useContext,useEffect, useState} from 'react'
 import { INJ_DENOM, USDT_DENOM, protocolAddress, oracleHelperAddress, cw20contractAddress} from './constants';
-import { ChainGrpcWasmApi, getInjectiveAddress, MsgExecuteContractCompat,
+import { ChainGrpcWasmApi, MsgExecuteContractCompat,
   fromBase64,
   toBase64, toUtf8 } from "@injectivelabs/sdk-ts";
 import { Network, getNetworkEndpoints } from "@injectivelabs/networks";
 import { WalletStrategy, Wallet, MsgBroadcaster } from "@injectivelabs/wallet-ts";
 import { Web3Exception } from "@injectivelabs/exceptions";
 import { ChainId } from "@injectivelabs/ts-types";
-import { useWalletStore } from "../context/WalletContextProvider";
+import { useChain } from '@cosmos-kit/react';
 
 const NETWORK = Network.Testnet;
 const ENDPOINTS = getNetworkEndpoints(NETWORK);
@@ -40,9 +40,27 @@ export const getAddresses = async (): Promise<string[]> => {
 };
 
 export const useContract = () => {
-  const [status, setStatus] = useState<any>(null);
 
-  const { connectWallet, injectiveAddress } = useWalletStore();
+  const chainContext = useChain("injectivetestnet");
+
+  const {
+    status,
+    address,
+    connect,
+    disconnect,
+} = chainContext;
+
+
+useEffect(() => {
+  const initClient = async () => {
+      if (status === "Connected") {
+          console.log("status:", status); // Log the client
+      }
+  };
+  initClient();
+}, [status]);
+
+const injectiveAddress = address
 
     const getEmergencyDebtByAddress = async (address: string) => {
         try {
@@ -144,6 +162,10 @@ export const useContract = () => {
         const res = await msgBroadcastClient.broadcast({
           msgs: msg,
           injectiveAddress: injectiveAddress,
+          funds:   [{
+            denom,
+            amount,
+          }]
         });
 
         ToastSuccess({
@@ -252,7 +274,9 @@ export const useContract = () => {
               };
 
     return ({
-      connectWallet,
+      connect,
+      disconnect,
+      status,
         injectiveAddress,
         emergency,
         getEmergencyDebtByAddress,
